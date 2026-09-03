@@ -1,115 +1,74 @@
-import { RankedSource, SearchResult } from '../../types';
+import { SearchResult, RankedSource } from '../../types';
 
 /**
- * Ranks search results by quality and relevance
+ * Ranks and filters search results based on quality signals
  */
 export class SourceRanker {
-  // Domain patterns for source quality assessment
-  private academicDomains = [
-    '.edu',
-    'scholar.google',
+  private highQualityDomains = [
+    'edu',
+    'gov',
+    'wikipedia.org',
     'arxiv.org',
-    'pubmed.ncbi',
-    'jstor.org',
-    'researchgate',
+    'researchgate.net',
+    'scholar.google.com'
   ];
 
-  private governmentDomains = ['.gov', '.org.uk', 'nasa.gov', 'noaa.gov'];
-
-  private newsDomains = [
-    'bbc.com',
-    'reuters.com',
-    'apnews.com',
-    'bbc.co.uk',
-    'theguardian.com',
-    'nytimes.com',
-    'wsj.com',
-    'economist.com',
-  ];
-
-  private lowQualityPatterns = [
-    'clickbait',
-    'content farm',
-    'listicle',
-    'sponsored',
-    'advertisement',
-  ];
+  private academicKeywords = ['research', 'study', 'analysis', 'findings', 'paper'];
+  private newsKeywords = ['news', 'today', 'breaking', 'latest', 'announced'];
 
   rank(results: SearchResult[]): RankedSource[] {
-    // Remove duplicates by URL
-    const seen = new Set<string>();
-    const unique = results.filter((r) => {
-      const key = r.url.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    const ranked = results
+      .map(result => this.enrichResult(result))
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 20); // Keep top 20
 
-    // Score each result
-    const ranked = unique.map((result) => this.scoreResult(result));
-
-    // Sort by score descending
-    ranked.sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-    // Take top 8-12 sources
-    return ranked.slice(0, 12);
+    return ranked;
   }
 
-  private scoreResult(result: SearchResult): RankedSource {
+  private enrichResult(result: SearchResult): RankedSource {
     let score = result.relevanceScore || 0.5;
-    let sourceType: 'academic' | 'government' | 'news' | 'general' = 'general';
-    let sourceQuality: 'high' | 'medium' | 'low' = 'medium';
+    let quality: 'high' | 'medium' | 'low' = 'medium';
+    let type: 'academic' | 'government' | 'news' | 'general' = 'general';
 
-    const domain = (result.domain || '').toLowerCase();
-    const title = (result.title || '').toLowerCase();
-    const snippet = (result.snippet || '').toLowerCase();
-
-    // Detect source type
-    if (this.academicDomains.some((d) => domain.includes(d))) {
-      sourceType = 'academic';
-      sourceQuality = 'high';
+    // Check domain quality
+    const domain = new URL(result.url).hostname || '';
+    if (this.isHighQualityDomain(domain)) {
       score += 0.3;
-    } else if (this.governmentDomains.some((d) => domain.includes(d))) {
-      sourceType = 'government';
-      sourceQuality = 'high';
-      score += 0.25;
-    } else if (this.newsDomains.some((d) => domain.includes(d))) {
-      sourceType = 'news';
-      sourceQuality = 'high';
+      quality = 'high';
+    }
+
+    // Determine source type
+    if (this.isAcademic(result.title + ' ' + result.snippet)) {
+      type = 'academic';
       score += 0.2;
+    } else if (domain.includes('gov')) {
+      type = 'government';
+      score += 0.15;
+    } else if (this.isNews(result.title + ' ' + result.snippet)) {
+      type = 'news';
     }
 
-    // Boost recent publications
-    if (result.publishedDate) {
-      const pubDate = new Date(result.publishedDate);
-      const now = new Date();
-      const daysSince = (now.getTime() - pubDate.getTime()) / (1000 * 60 * 60 * 24);
-
-      if (daysSince < 7) score += 0.15;
-      else if (daysSince < 30) score += 0.1;
-      else if (daysSince < 365) score += 0.05;
-    }
-
-    // Penalize low quality indicators
-    if (this.lowQualityPatterns.some((p) => title.includes(p) || snippet.includes(p))) {
-      sourceQuality = 'low';
-      score -= 0.3;
-    }
-
-    // Ensure score stays in 0-1 range
-    score = Math.max(0, Math.min(1, score));
+    // Cap score at 1.0
+    score = Math.min(score, 1.0);
 
     return {
-      id: result.id,
-      title: result.title,
-      url: result.url,
-      domain: result.domain,
-      snippet: result.snippet,
-      publishedDate: result.publishedDate,
+      ...result,
       relevanceScore: score,
-      sourceType,
-      sourceQuality,
-      contentRetrieved: false,
+      sourceQuality: quality,
+      sourceType: type,
+      contentRetrieved: false
     };
+  }
+
+  private isHighQualityDomain(domain: string): boolean {
+    return this.highQualityDomains.some(hq => domain.includes(hq));
+  }
+
+  private isAcademic(text: string): boolean {
+    return this.academicKeywords.some(kw => text.toLowerCase().includes(kw));
+  }
+
+  private isNews(text: string): boolean {
+    return this.newsKeywords.some(kw => text.toLowerCase().includes(kw));
   }
 }

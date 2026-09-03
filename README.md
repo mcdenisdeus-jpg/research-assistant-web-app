@@ -1,411 +1,228 @@
-# Research Assistant Web App - MVP
+# Research Assistant Web App
 
-A functional web-based research assistant that searches the web, gathers sources, and synthesizes information using AI with accurate citations.
+A full-stack web application for AI-powered research that uses web search and language models to provide comprehensive answers to research questions.
 
 ## Features
 
-✅ **Clean Research Interface** - Simple question input with responsive design  
-✅ **Web Search Integration** - Searches multiple sources via Bing Search API  
-✅ **Smart Source Ranking** - Prioritizes academic, government, and reputable sources  
-✅ **AI Synthesis** - Generates well-structured answers with proper citations  
-✅ **Citation System** - Every factual claim linked to original sources  
-✅ **Source Cards** - Beautiful source display with metadata and links  
-✅ **Research Progress** - Real-time progress updates during research  
-✅ **Error Handling** - Graceful failure handling with user-friendly messages  
-✅ **Research History** - Track previous research questions and results  
-✅ **Mobile Responsive** - Works great on desktop and mobile devices  
+### Backend
+- **Multi-stage research pipeline**: Analyzes questions, generates search queries, retrieves and ranks sources
+- **Web search integration**: Uses Bing Search API to find relevant sources
+- **AI synthesis**: Leverages OpenAI to synthesize research findings
+- **Citation tracking**: Automatically validates and tracks citations
+- **SQLite persistence**: Stores research sessions and results
+- **Error handling**: Graceful fallbacks and error recovery
 
-## Technology Stack
+### Frontend
+- **React + TypeScript**: Modern, type-safe UI
+- **Real-time progress**: Visual progress indicator during research
+- **Responsive design**: Works on desktop and mobile
+- **Source cards**: Display ranked sources with metadata
+- **Citation management**: Show citations with source links
 
-**Frontend:**
-- React 18 with TypeScript
-- TailwindCSS for styling
-- Axios for HTTP requests
-- Lucide React for icons
-
-**Backend:**
-- Node.js with Express
-- SQLite for data persistence
-- TypeScript for type safety
-- CORS enabled for frontend communication
-
-**External APIs:**
-- Bing Search API (free tier)
-- OpenAI API for AI synthesis
-- Jina AI for content extraction (fallback)
-
-## Project Structure
+## Architecture
 
 ```
-research-assistant-web-app/
-├── frontend/                    # React application
-│   ├── src/
-│   │   ├── components/         # React components
-│   │   │   ├── ResearchForm.tsx
-│   │   │   ├── ResultsPage.tsx
-│   │   │   ├── SourceCard.tsx
-│   │   │   ├── ProgressIndicator.tsx
-│   │   │   └── History.tsx
-│   │   ├── pages/
-│   │   │   ├── HomePage.tsx
-│   │   │   └── ResultsPage.tsx
-│   │   ├── services/
-│   │   │   └── api.ts          # Frontend API client
-│   │   ├── types/
-│   │   │   └── index.ts        # TypeScript types
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── backend/                     # Node.js/Express API
-│   ├── src/
-│   │   ├── services/           # Core business logic
-│   │   │   ├── research/
-│   │   │   │   ├── orchestrator.ts
-│   │   │   │   ├── queryAnalyzer.ts
-│   │   │   │   ├── sourceRanker.ts
-│   │   │   │   └── citationManager.ts
-│   │   │   ├── search/
-│   │   │   │   ├── searchProvider.ts
-│   │   │   │   ├── bingSearch.ts
-│   │   │   │   └── sourceRetriever.ts
-│   │   │   ├── ai/
-│   │   │   │   ├── aiProvider.ts
-│   │   │   │   └── openaiProvider.ts
-│   │   │   └── database/
-│   │   │       └── db.ts
-│   │   ├── routes/
-│   │   │   ├── research.ts
-│   │   │   └── history.ts
-│   │   ├── middleware/
-│   │   │   └── validation.ts
-│   │   ├── types/
-│   │   │   └── index.ts
-│   │   └── index.ts            # Express app entry point
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── .env.example                 # Template for environment variables
-└── docker-compose.yml          # (Optional) Local development setup
+frontend/          # React TypeScript app
+├── src/
+│   ├── components/     # React UI components
+│   ├── services/       # API client
+│   ├── types/          # TypeScript definitions
+│   └── App.tsx         # Main app component
+└── package.json
+
+backend/           # Express TypeScript server
+├── src/
+│   ├── services/
+│   │   ├── ai/         # AI provider (OpenAI)
+│   │   ├── database/   # SQLite wrapper
+│   │   ├── research/   # Research orchestrator
+│   │   └── search/     # Search providers
+│   ├── routes/         # Express routes
+│   ├── types/          # TypeScript definitions
+│   └── index.ts        # Server entry point
+└── package.json
 ```
 
-## Required Environment Variables
+## Research Pipeline
 
-Create a `.env` file in the `backend/` directory with the following:
+The research process follows these stages:
+
+1. **Understanding Question** (1s)
+   - Analyzes the research question
+   - Extracts key topics and terms
+
+2. **Generating Queries** (2-3s)
+   - Uses AI to generate 3-5 focused search queries
+   - Falls back to keyword analysis if needed
+
+3. **Searching Sources** (5-10s)
+   - Executes search queries against Bing Search API
+   - Collects initial results
+
+4. **Filtering Results** (2-3s)
+   - Ranks sources by quality and relevance
+   - Classifies sources (academic, news, government, general)
+   - Selects top 8-10 sources
+
+5. **Reading Sources** (15-30s)
+   - Retrieves full content from selected sources
+   - Handles timeouts and access errors
+   - Extracts text from HTML
+
+6. **Comparing Evidence** (2-3s)
+   - Analyzes relationships between sources
+   - Identifies agreements and disagreements
+
+7. **Writing Report** (10-20s)
+   - Uses AI to synthesize comprehensive answer
+   - Ensures proper citations
+   - Validates citation format
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js 16+ and npm/yarn
+- Bing Search API key (from [Microsoft Azure](https://azure.microsoft.com/en-us/services/cognitive-services/bing-web-search-api/))
+- OpenAI API key (from [OpenAI](https://platform.openai.com/account/api-keys))
+
+### Backend Setup
+
+```bash
+cd backend
+npm install
+
+# Create .env file
+cp .env.example .env
+# Edit .env with your API keys:
+# BING_SEARCH_API_KEY=your_key_here
+# OPENAI_API_KEY=your_key_here
+
+# Start development server
+npm run dev
+```
+
+The backend will run on `http://localhost:3001`
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+
+# Start development server
+npm run dev
+```
+
+The frontend will run on `http://localhost:5173`
+
+## API Endpoints
+
+### POST /api/research
+Start a new research task
+
+**Request:**
+```json
+{
+  "question": "What are the latest developments in quantum computing?"
+}
+```
+
+**Response:**
+```json
+{
+  "sessionId": "uuid-string",
+  "status": "started"
+}
+```
+
+### GET /api/research/:id
+Get research results by ID
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "question": "...",
+  "answer": "...",
+  "citations": [...],
+  "sources": [...],
+  "metadata": {...}
+}
+```
+
+### GET /api/history
+Get research history
+
+**Query Parameters:**
+- `limit` (default: 20, max: 100)
+
+## Environment Variables
 
 ```
 # Search API
-BING_SEARCH_API_KEY=your_bing_search_api_key_here
+BING_SEARCH_API_KEY=your_bing_api_key
 
 # AI Provider
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=your_openai_api_key
 
 # Server
 PORT=3001
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
-
-# Optional
-JINA_API_KEY=optional_for_content_extraction
 ```
 
-## Getting API Keys
+## Technologies
 
-### Bing Search API
-1. Go to https://www.microsoft.com/en-us/bing/apis/bing-web-search-api
-2. Click "Get free key" or "Try now"
-3. Sign in with Microsoft account
-4. Create a resource and get your API key
-5. Free tier: 1,000 queries per month
+### Frontend
+- React 18
+- TypeScript
+- Tailwind CSS
+- Vite
+- Axios
+- Lucide React (icons)
 
-### OpenAI API
-1. Go to https://platform.openai.com/account/api-keys
-2. Create a new API key
-3. Use GPT-4 or GPT-3.5-turbo (chat models)
-4. Note: OpenAI has moved to paid-only, but offers $5 free trial credits
+### Backend
+- Express.js
+- TypeScript
+- SQLite3
+- Axios
+- UUID
 
-### Jina AI (Optional, for content extraction)
-1. Go to https://jina.ai/
-2. Sign up for free tier
-3. Get API key for web content extraction
+### External APIs
+- Bing Search API
+- OpenAI API
 
-## Installation & Setup
+## Performance Considerations
 
-### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
-
-### 1. Clone and Install Dependencies
-
-```bash
-git clone https://github.com/mcdenisdeus-jpg/research-assistant-web-app.git
-cd research-assistant-web-app
-
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-cd ..
-```
-
-### 2. Configure Environment Variables
-
-```bash
-# Copy the example file
-cp .env.example backend/.env
-
-# Edit the file with your API keys
-nano backend/.env
-# or use your preferred editor
-```
-
-### 3. Start the Application
-
-**Option A: Development (separate terminals)**
-
-Terminal 1 - Backend:
-```bash
-cd backend
-npm run dev
-# Server runs on http://localhost:3001
-```
-
-Terminal 2 - Frontend:
-```bash
-cd frontend
-npm run dev
-# App runs on http://localhost:5173
-```
-
-**Option B: Docker (single command)**
-```bash
-docker-compose up
-```
-
-## How It Works
-
-### Research Pipeline
-
-1. **Question Analysis**
-   - Parses user input
-   - Extracts key terms and concepts
-   - Determines if current information is needed
-   - Generates multiple search queries automatically
-
-2. **Web Search**
-   - Searches using Bing Search API
-   - Returns structured results with title, URL, snippet, date
-   - Provider abstraction allows swapping search engines
-
-3. **Source Collection & Ranking**
-   - Removes duplicate results
-   - Ranks by relevance and source quality
-   - Prioritizes: academic → government → news → general sources
-   - Filters out spam and low-quality sites
-
-4. **Content Extraction**
-   - Retrieves full page content from each source
-   - Extracts relevant text sections
-   - Handles timeouts and inaccessible pages gracefully
-
-5. **AI Synthesis**
-   - Sends research context to OpenAI API
-   - AI generates comprehensive answer
-   - Includes citations for all factual claims
-   - Avoids fabrication and unsupported claims
-
-6. **Citation Management**
-   - Maps citations to source list
-   - Validates all citations refer to actual sources
-   - Creates clickable links to original sources
-
-7. **Results Display**
-   - Shows research question
-   - Displays synthesized answer with inline citations
-   - Lists all sources with metadata
-   - Shows research metadata (duration, search count)
-
-## Research Progress States
-
-Users see real-time progress updates:
-
-```
-Understanding question...          ↓
-Generating search queries...       ↓
-Searching sources...               ↓
-Filtering and ranking results...   ↓
-Reading relevant sources...        ↓
-Comparing evidence...              ↓
-Writing research report...         ✓
-```
-
-## Citation Format
-
-Citations appear inline in the answer and link to sources:
-
-```
-"Solar power has grown significantly over the past decade [1][2]."
-
----
-
-[1] Source Title
-Domain: example.com
-Date: 2023-06-15
-[Open Source] [Copy URL]
-
-[2] Another Source
-Domain: research.org
-Date: 2024-01-10
-[Open Source] [Copy URL]
-```
-
-## Database Schema
-
-The app uses SQLite with the following main tables:
-
-- **users** - User accounts (for future expansion)
-- **research_sessions** - Individual research activities
-- **research_questions** - Original questions asked
-- **search_queries** - Generated search queries for each research
-- **sources** - Web sources found and used
-- **citations** - Mapping between answer claims and sources
-- **research_results** - Final synthesized answers
-
-## Adding Another Search Provider
-
-1. Create `backend/src/services/search/[provider]Provider.ts`
-2. Implement `SearchProvider` interface
-3. Add to provider selection in orchestrator
-
-Example:
-```typescript
-export class GoogleSearchProvider implements SearchProvider {
-  async search(query: string): Promise<SearchResult[]> {
-    // Implementation here
-  }
-}
-```
-
-## Adding Another AI Provider
-
-1. Create `backend/src/services/ai/[provider]Provider.ts`
-2. Implement `AIProvider` interface
-3. Add to provider selection in orchestrator
-
-Example:
-```typescript
-export class AnthropicProvider implements AIProvider {
-  async generateResearchQueries(question: string): Promise<string[]> {
-    // Implementation
-  }
-  async generateFinalReport(context: ResearchContext): Promise<string> {
-    // Implementation
-  }
-}
-```
+- Research typically completes in 30-120 seconds
+- Search queries are executed sequentially to avoid rate limits
+- Source content retrieval has 8-second timeouts
+- Results are cached in SQLite for later retrieval
+- Frontend polls backend every 1 second for updates
 
 ## Error Handling
 
-The application gracefully handles:
-
-- ❌ Search API failures → Shows error, suggests retry
-- ❌ AI API failures → Falls back to source summaries
-- ❌ Network timeouts → Continues with available sources
-- ❌ Rate limits → Implements backoff and queuing
-- ❌ Inaccessible sources → Skips with notification
-- ❌ Empty results → Guides user to refine question
-
-## Security Features
-
-- ✅ API keys never exposed to frontend
-- ✅ Server-side API calls only
-- ✅ Input validation on all endpoints
-- ✅ Content sanitization for XSS prevention
-- ✅ CORS configured for frontend only
-- ✅ Rate limiting on search endpoints
-- ✅ SSRF protection for source retrieval
-
-## Testing the Application
-
-### Test Scenarios
-
-1. **Basic Research**
-   - Question: "What are the latest advances in quantum computing?"
-   - Verify: Search runs, sources load, AI synthesizes, citations present
-
-2. **Current Events**
-   - Question: "What happened in the news today?"
-   - Verify: Recent sources prioritized, dates are current
-
-3. **Empty Question**
-   - Question: "" (blank)
-   - Verify: Validation error message shown
-
-4. **Technical Question**
-   - Question: "How do neural networks work?"
-   - Verify: Academic sources prioritized, complex concepts explained
-
-5. **Search Failure**
-   - Turn off internet or use invalid API key
-   - Verify: Clear error message, no crash
-
-6. **Mobile Testing**
-   - Open on mobile device
-   - Verify: Responsive layout, readable text, buttons clickable
+- Graceful degradation when APIs are unavailable
+- Fallback to simpler queries if AI generation fails
+- Timeout handling for slow sources
+- Validation of citations against sources
+- User-friendly error messages
 
 ## Future Enhancements
 
-- User accounts and saved research
-- PDF export of research results
-- Comparison of multiple research sessions
-- Source quality scoring dashboard
-- Custom search filters (date range, language, domain)
-- Multi-language support
-- Collaborative research sessions
-- Research templates for common question types
-- Advanced citation formats (APA, Chicago, MLA)
-- API rate limiting and caching
-
-## Troubleshooting
-
-**"API Key Invalid" error**
-- Verify key is copied exactly (no extra spaces)
-- Check API hasn't been rate limited
-- Confirm key is for correct service
-
-**"No sources found"**
-- Try a simpler, more specific question
-- Check internet connection
-- Verify Bing API quota not exceeded
-
-**"AI synthesis failed"**
-- Check OpenAI API status
-- Verify API key has credits
-- Try a shorter, clearer question
-
-**Frontend can't connect to backend**
-- Verify backend is running on port 3001
-- Check CORS settings
-- Ensure FRONTEND_URL in .env is correct
+- [ ] WebSocket support for real-time progress updates
+- [ ] Multiple search providers (Google, DuckDuckGo)
+- [ ] Source content caching
+- [ ] Advanced filtering (by date, domain, etc.)
+- [ ] Export to PDF/Markdown
+- [ ] User authentication and history
+- [ ] Rate limiting and quotas
+- [ ] A/B testing different synthesis strategies
 
 ## License
 
 MIT
 
-## Contributing
+## Support
 
-This is an MVP. Contributions welcome for:
-- Additional search providers
-- Alternative AI providers
-- UI/UX improvements
-- Performance optimization
-- Test coverage
-
----
-
-**Built with a focus on reliable research, not impressive-looking UI.**  
-Source quality → Evidence → Accurate synthesis → Citations → Presentation
+For issues or questions, please open an issue on GitHub.
